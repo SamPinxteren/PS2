@@ -28,6 +28,7 @@ int main(int argc, char** argv)
 		std::cout << " -L output -log(p-value) (Poisson approximation)" << std::endl;
 		#ifdef SIGSPAN
 		std::cout << "sigspan options:" << std::endl;
+		std::cout << " -b output expected value" <<std::endl;
 		std::cout << " -i output p-value" <<std::endl;
 		std::cout << " -I output -log(p-value)" <<std::endl;
 		#endif
@@ -106,45 +107,49 @@ int main(int argc, char** argv)
 
 	std::ostream& out_stream = (output_file.is_open() ? output_file : std::cout);
 	for (auto const& p: patterns){
+		std::ostringstream result_string;
 		for (unsigned int i = 1; i <= argc-3; ++i){
 			if (std::strlen(argv[i]) != 2 or argv[i][0] != '-') continue;
 			switch(argv[i][1]){
 				case 's':
-					out_stream << p.get_support() << " ";
+					result_string << p.get_support() << " ";
 					break;
 				case 'e':
-					out_stream << p.get_expected_value() << " ";
+					result_string << p.get_expected_value() << " ";
 					break;
 				case 'd':
-					out_stream << p.get_standard_deviation() << " ";
+					result_string << p.get_standard_deviation() << " ";
 					break;
 				case 'c':
-					out_stream << p.get_non_zero_sequences() << " ";
+					result_string << p.get_non_zero_sequences() << " ";
 					break;
 				case 'n':
-					out_stream << p.get_p_normal() << " ";
+					result_string << p.get_p_normal() << " ";
 					break;
 				case 'N':
-					out_stream << -log(p.get_p_normal()) << " ";
+					result_string << -log(p.get_p_normal()) << " ";
 					break;
 				case 'p':
-					out_stream << p.get_p_exact() << " ";
+					result_string << p.get_p_exact() << " ";
 					break;
 				case 'P':
-					out_stream << -log(p.get_p_exact()) << " ";
+					result_string << -log(p.get_p_exact()) << " ";
 					break;
 				case 'l':
-					out_stream << p.get_p_poisson() << " ";
+					result_string << p.get_p_poisson() << " ";
 					break;
 				case 'L':
-					out_stream << -log(p.get_p_poisson()) << " ";
+					result_string << -log(p.get_p_poisson()) << " ";
 					break;
 			#ifdef SIGSPAN
+				case 'b':
+					result_string << p.get_expected_value_sigspan(database_shape) << " ";
+					break;
 				case 'i':
-					out_stream << p.get_p_sigspan(database_shape) << " ";
+					result_string << p.get_p_sigspan(database_shape) << " ";
 					break;
 				case 'I':
-					out_stream << -log(p.get_p_sigspan(database_shape)) << " ";
+					result_string << -log(p.get_p_sigspan(database_shape)) << " ";
 					break;
 			#endif
 				case 'o':
@@ -152,7 +157,7 @@ int main(int argc, char** argv)
 					break;
 			}
 		}
-		out_stream << p.to_string() << std::endl;
+		out_stream << result_string.str() << p.to_string() << std::endl;
 	}
 	if (output_file.is_open()){
 		output_file.close();

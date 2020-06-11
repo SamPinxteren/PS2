@@ -254,69 +254,103 @@ std::string Pattern::to_string() const
 }
 
 #ifdef SIGSPAN
-void Pattern::sigspan_recursive(double* result, double* probabilities, unsigned int pattern_length, unsigned int sequence_length, double p) const{
-	double prob = probabilities[pattern_length - 1];
-	if (pattern_length == 1){
+double* Pattern::sigspan(double* probabilities, unsigned int pattern_length, unsigned int sequence_length) const{
+	double* Qx_ = new double[sequence_length]();
+	double* Qx = new double[sequence_length]();
+
+	for (unsigned int i = 0; i < sequence_length; ++i){
+		Qx_[i] = probabilities[0] * pow(1-probabilities[0], i);
+	}
+
+	for (unsigned int k = 2; k <= pattern_length; ++k){
 		for (unsigned int i = 0; i < sequence_length; ++i){
-			for (unsigned int j = i; j < sequence_length; ++j){
-				result[j] += p * prob * pow(1-prob, i);
+			Qx[i] = 0;
+		}
+		for (unsigned int i = k; i <= sequence_length; ++i){
+			for (unsigned int j = k - 1; j <= i - 1; ++j){
+				Qx[i-1] += Qx_[j-1] * probabilities[k - 1] * pow(1-probabilities[k-1], i-j-1);
 			}
 		}
-	} else {
-		for (unsigned int j = 0; j <= sequence_length - pattern_length; ++j){
-			sigspan_recursive(
-				&(result[j]),
-				probabilities,
-				pattern_length - 1,
-				sequence_length - j - 1,
-				p * prob * pow(1-prob, j)
-			);
-		}
+		double* tmp = Qx_;
+		Qx_ = Qx;
+		Qx = tmp;
 	}
+	delete [] Qx;
+
+	for (unsigned int i = 1; i < sequence_length; ++i){
+		Qx_[i] += Qx_[i-1];
+	}
+
+	return Qx_;
 }
 
-double Pattern::get_p_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const
+
+double Pattern::get_expected_value_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const
 {
 	unsigned int max_sequence_length = 0;
 	unsigned int dataset_size = 0;
-	unsigned int n = 0;
 	for (auto const& x: dataset_shape){
 		max_sequence_length = std::max(x.first, max_sequence_length);
 		dataset_size += x.first * x.second;
-		n += x.second;
 	}
 
 	double* probabilities = new double[symbols.size()]();
-	double* result = new double[max_sequence_length - symbols.size() + 1]();
 
 	for (unsigned int i = 0; i < symbols.size(); ++i){
 		probabilities[i] = (double) total_symbol_counts.at(symbols[i]) / dataset_size;
 	}
 
-	sigspan_recursive(result, probabilities, symbols.size(), max_sequence_length, 1);
+	double* result = sigspan(probabilities, symbols.size(), max_sequence_length);
 
 	if (verbose >= 2){
+		// Output item probabilities
 		std::cout << "|SigSpan| " << to_string();
 		for (unsigned int i = 0; i < symbols.size(); ++i){
 			std::cout << " " << probabilities[i];
 		}
 		std::cout << std::endl;
+
+		// Output probabilities per length
 		std::cout << "|SigSpan| " << to_string();
-		for (unsigned int i = 0; i <= max_sequence_length - symbols.size(); ++i){
+		for (unsigned int i = 0; i < max_sequence_length; ++i){
 			std::cout << " " << result[i];
+		}
+		std::cout << std::endl;
+
+		// Output length counts
+		std::cout << "|SigSpan| " << to_string();
+		for (unsigned int i = symbols.size(); i <= max_sequence_length; ++i){
+			if (dataset_shape.find(i) == dataset_shape.end()){
+				std::cout << "0 ";
+			} else {
+				std::cout << dataset_shape.at(i) << " ";
+			}
+			
 		}
 		std::cout << std::endl;
 	}
 
 	double expected_support = 0;
-	for (auto const& x: dataset_shape){
-		expected_support += result[x.first - symbols.size()] * x.second;
+	for (unsigned int i = symbols.size(); i <= max_sequence_length; ++i){
+		if (dataset_shape.find(i) != dataset_shape.end()){
+			expected_support += dataset_shape.at(i) * result[i-1];
+		}
 	}
 
 	delete [] probabilities;
 	delete [] result;
 
-	return exp((-2.0/n) * (get_support() - pow(expected_support, 2)));
+	return expected_support;
+}
+
+double Pattern::get_p_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const
+{
+	double n = 0;
+	for (auto const& x: dataset_shape){
+		n += x.second;
+	}
+
+	return exp((-2.0/n) * pow(get_support() - get_expected_value_sigspan(dataset_shape), 2));
 }
 #endif
 

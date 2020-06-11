@@ -41,7 +41,7 @@ class Pattern
 		double occurs_probability();
 
 		#ifdef SIGSPAN
-		void sigspan_recursive(double* result, double* probabilities, unsigned int pattern_length, unsigned int sequence_length, double p) const;
+		double* sigspan(double* probabilities, unsigned int pattern_length, unsigned int sequence_length) const;
 		#endif
 
 	public:
@@ -56,6 +56,7 @@ class Pattern
 		double get_p_exact() const;
 		double get_p_poisson() const;
 		#ifdef SIGSPAN
+		double get_expected_value_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const;
 		double get_p_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const;
 		#endif
 		unsigned int get_non_zero_sequences() const;
