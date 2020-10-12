@@ -1,40 +1,56 @@
-#include "FileReader.h"
+#include "FileReader.h" 
 
-FileReader::FileReader(std::string filename, char symbol_separator, char line_separator){
-	file.open(filename);
-	sym_sep = symbol_separator;
-	line_sep = line_separator;
-	std::string line;
-	std::getline(file, line, line_sep);
-	line_stream.str(line);
+FileReader::FileReader(std::string filename, char symbolSeparator, char lineSeparator, bool shuffled) :
+	m_SymbolSeparator(symbolSeparator),
+	m_LineSeparator(lineSeparator),
+	m_Shuffled(shuffled) {
+	m_File.open(filename);
+	Clear();
 }
 
-bool FileReader::getitem(std::string& item_data){
-	item_data.clear();
-
-	if (line_stream.str().size() == 0){
-		std::string line;
-		if (!std::getline(file, line, line_sep)){
+bool FileReader::EnsureLine(){
+	std::string line;
+	while (m_Line.size() == 0){
+		if (!std::getline(m_File, line, m_LineSeparator))
 			return false;
-		}
-		line_stream.str(line);
-		line_stream.clear();
-	}
+		std::string newElement;
+		std::stringstream lineStream = std::stringstream(line);
+		while (std::getline(lineStream, newElement, m_SymbolSeparator))
+			m_Line.push_back(newElement);
 
-	if (!std::getline(line_stream, item_data, sym_sep)){
-		item_data = "\n";
-		line_stream.str("");
-		line_stream.clear();
-		return true;
+		if (m_Shuffled)
+			std::random_shuffle(m_Line.begin(), m_Line.end());
 	}
 	return true;
 }
 
-bool FileReader::getline(std::vector<std::string>& line_data){
-	line_data.clear();
-	std::string symbol = "";
-	while (getitem(symbol) && symbol != "\n"){
-		line_data.push_back(symbol);
+bool FileReader::Item(std::string& itemData){
+	if (m_FileFinished){
+		return false;
+	} else if (m_Line.size() == 0){
+		m_FileFinished = !EnsureLine();
+		itemData = "\n";
+	} else {
+		itemData = m_Line[0];
+		m_Line.erase(m_Line.begin());
 	}
-	return symbol == "\n";
+	return true;
+}
+
+bool FileReader::Line(std::vector<std::string>& lineData){
+	if (!EnsureLine()) return false;
+
+	lineData = m_Line;
+	m_Line.clear();
+}
+
+void FileReader::SetShuffled(bool shuffled){
+	m_Shuffled = shuffled;
+}
+
+void FileReader::Clear(){
+	m_File.clear();
+	m_File.seekg(0);
+	m_FileFinished = false;
+	EnsureLine();
 }

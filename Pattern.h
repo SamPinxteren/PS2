@@ -15,60 +15,63 @@ class Pattern
 {
 	private:
 		// Pattern data
-		std::vector<std::string> symbols;
+		std::vector<std::string> m_Symbols;
 
 		// Sequence state
-		unsigned int active_symbol;
-		std::map<std::string, unsigned int> symbol_counts;
-		std::map<std::string, unsigned int> total_symbol_counts;
+		unsigned int m_ActiveSymbol;
+		std::map<std::string, unsigned int> m_SymbolCounts;
+		std::map<std::string, unsigned int> m_TotalSymbolCounts;
 
 		// Probability statistics
-		std::vector<double> P;
-		double expected_value;
-		double variance;
-		unsigned int real_value;
+		std::vector<double> m_P;
+		double m_ExpectedValue;
+		double m_Variance;
+		unsigned int m_RealValue;
 
 		// verbosity level
-		unsigned int verbose;
+		unsigned int m_Verbose;
 
-		static std::map<std::pair<int, int>, BigInt> g_dict;
-		BigInt g(int b, int e);
+		static std::map<std::pair<int, int>, BigInt> m_G;
+		BigInt G(int b, int e);
 
 		// Compute the permutation probability exactly
-		static std::map<std::vector<unsigned int>, double> C_dict;
+		static std::map<std::vector<unsigned int>, double> m_C;
 		double C(std::vector<unsigned int> X);
 
-		double occurs_probability();
+		double OccursProbability();
 
 		#ifdef SIGSPAN
-		double* sigspan(double* probabilities, unsigned int pattern_length, unsigned int sequence_length) const;
+		double* Sigspan(double* probabilities, unsigned int pattern_length, unsigned int sequence_length) const;
 		#endif
 
 	public:
-		Pattern(std::vector<std::string> pattern_symbols, unsigned int verbosity);
-		Pattern(std::vector<std::string> pattern_symbols);
+		Pattern(std::vector<std::string> patternSymbols, unsigned int verbosity);
+		Pattern(std::vector<std::string> patternSymbols);
 
 		// Get data for currently processed sequences
-		double get_standard_deviation() const;
-		double get_expected_value() const;
-		unsigned int get_support() const;
-		double get_p_normal() const;
-		double get_p_exact() const;
-		double get_p_poisson() const;
+		double StandardDeviation() const;
+		double ExpectedValue() const;
+		unsigned int Support() const;
+		double PNormal() const;
+		double PExact() const;
+		double PPoisson() const;
 		#ifdef SIGSPAN
-		double get_expected_value_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const;
-		double get_p_sigspan(std::map<unsigned int, unsigned int> dataset_shape) const;
+		double ExpectedValueSigspan(std::map<unsigned int, unsigned int> dataset_shape) const;
+		double PSigspan(std::map<unsigned int, unsigned int> dataset_shape) const;
 		#endif
-		unsigned int get_non_zero_sequences() const;
+		unsigned int NonZeroSequences() const;
 
 		// Process the last symbols seen
-		void process();
-		// Reset for new sequence
-		void clear();
+		void Process(bool onlyCount);
+		void Process();
 		// Handle a new symbol for the current sequence
-		bool symbol_seen(std::string symbol);
+		bool SymbolSeen(std::string symbol, bool onlyCount);
+		bool SymbolSeen(std::string symbol);
+		// Clear for new sequence
+		void Reset();
+		void Clear();
 
 		// Create a string describing this pattern
-		std::string to_string() const;
+		std::string ToString() const;
 };
 #endif
